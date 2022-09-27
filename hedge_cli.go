@@ -69,7 +69,7 @@ func Show_vms() {
 
 	var content []byte
 
-	content, err = ReadProcFile(mon_endpoint)
+	content, err := os.ReadFile(mon_endpoint)
 	if err != nil {
 		fmt.Println(err)
 	} else {
@@ -84,7 +84,7 @@ func Show_cons(vm_id int) {
 		fmt.Println(err)
 	}
 	cmd = fmt.Sprintf("cat /proc/vmcons\n")
-	content, err := ReadProcFile(cons_endpoint)
+	content, err := os.ReadFile(cons_endpoint)
 	if err != nil {
 		fmt.Println(err)
 	} else {
