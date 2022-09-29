@@ -3,92 +3,94 @@ package hedge_api
 import (
 	"fmt"
 	"os"
+	"strconv"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const mon_endpoint = "/proc/monitor"
 const cons_endpoint = "/proc/vmcons"
 
-func Start_vm(bin_path string, vm_name string, cpu int, mem int,
-	blk string, net string, cmdline string) int {
+func StartVM(bin_path string, vm_name string, cpu int, mem int,
+	blk string, net string, cmdline string) (retError error) {
+	defer func() {
+		if retError != nil {
+			log.WithError(retError).Error(retError.Error())
+		}
+	}()
 
-	var ret int
-
-	ret = 0
 	if bin_path == "" {
-		fmt.Println("Path to kernel was not specified. Please use --kernel argument")
-		ret = -1
+		return &VMParamError{Param: "kernel", Value: bin_path}
 	}
 	if vm_name == "" {
-		fmt.Println("Name of VM was not specified. Please use the --name argument")
-		ret = -1
+		return &VMParamError{Param: "name", Value: vm_name}
 	}
 	if cpu < 0 {
-		fmt.Println("CPU core (--core) can not be negative")
-		ret = -1
+		return &VMParamError{Param: "core", Value: strconv.Itoa(cpu)}
 	}
 	if mem < 0 {
-		fmt.Println("VM memory (--mem) can not be a negative value")
-		ret = -1
+		return &VMParamError{Param: "mem", Value: strconv.Itoa(mem)}
 	}
-	if ret == 0 {
-		cmd := fmt.Sprintf("load|%s", bin_path)
-		err := os.WriteFile(mon_endpoint, []byte(cmd), 0777)
-		if err != nil {
-			fmt.Println(err)
-			ret = 1
-		}
-		cmd = fmt.Sprintf("start|%s|%s|%d|%d|%s|%s|%s", vm_name,
-			bin_path, cpu, mem, blk, net, cmdline)
-		err = os.WriteFile(mon_endpoint, []byte(cmd), 0777)
-		if err != nil {
-			fmt.Println(err)
-			ret = 1
-		}
+
+	cmd := fmt.Sprintf("load|%s", bin_path)
+	err := os.WriteFile(mon_endpoint, []byte(cmd), 0777)
+	if err != nil {
+		return err
 	}
-	return ret
+	cmd = fmt.Sprintf("start|%s|%s|%d|%d|%s|%s|%s", vm_name,
+		bin_path, cpu, mem, blk, net, cmdline)
+	err = os.WriteFile(mon_endpoint, []byte(cmd), 0777)
+	return err
 }
 
-func Stop_vm(vm_name string) int {
-	var ret int
+func StopVM(vm_name string) (retError error) {
+	defer func() {
+		if retError != nil {
+			log.WithError(retError).Error(retError.Error())
+		}
+	}()
 
-	ret = 0
 	if vm_name == "" {
-		return 1
+		return &VMParamError{Param: "name", Value: vm_name}
 	}
 
 	cmd := fmt.Sprintf("stop|%s", vm_name)
 	err := os.WriteFile(mon_endpoint, []byte(cmd), 0777)
-	if err != nil {
-		fmt.Println(err)
-		ret = 1
-	}
-	return ret
+	return err
 }
 
-func Show_vms() {
+func ShowVMs() (vms string, retError error) {
+	defer func() {
+		if retError != nil {
+			log.WithError(retError).Error(retError.Error())
+		}
+	}()
 
 	var content []byte
-
 	content, err := os.ReadFile(mon_endpoint)
 	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(string(content))
+		return "", err
 	}
+	return string(content), nil
 }
 
-func Show_cons(vm_id int) {
+func ShowConsole(vm_id int) (console string, retError error) {
+	defer func() {
+		if retError != nil {
+			log.WithError(retError).Error(retError.Error())
+		}
+	}()
 	cmd := fmt.Sprintf("%d", vm_id)
 	err := os.WriteFile(cons_endpoint, []byte(cmd), 0777)
 	if err != nil {
-		fmt.Println(err)
+		return "", err
 	}
 	// This value of cmd is never used
 	cmd = fmt.Sprintf("cat /proc/vmcons\n")
 	content, err := os.ReadFile(cons_endpoint)
 	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(string(content))
+		return "", err
 	}
+	return string(content), nil
+
 }

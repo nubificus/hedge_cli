@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 
 	hedge "github.com/nubificus/hedge_cli/hedge_api"
 
@@ -89,9 +90,12 @@ var startCommand = cli.Command{
 			Destination: new(string),
 		},
 	},
-	Action: func(c *cli.Context) error {
-		var retErr error
-
+	Action: func(c *cli.Context) (retError error) {
+		defer func() {
+			if retError != nil {
+				fmt.Println(retError.Error())
+			}
+		}()
 		kernel := c.String("kernel")
 		name := c.String("name")
 		blk := c.String("blk")
@@ -111,12 +115,13 @@ var startCommand = cli.Command{
 
 		core := c.Int("core")
 
-		ret := hedge.Start_vm(kernel, name, core, mem,
+		err := hedge.StartVM(kernel, name, core, mem,
 			blk, net, cmdline)
-		if ret == 0 {
-			return nil
+		if err != nil {
+			return err
 		}
-		return retErr
+		fmt.Println("VM started")
+		return nil
 	},
 }
 
@@ -137,18 +142,22 @@ var stopCommand = cli.Command{
 			Destination: new(string),
 		},
 	},
-	Action: func(c *cli.Context) error {
-		var retErr error
-
+	Action: func(c *cli.Context) (retError error) {
+		defer func() {
+			if retError != nil {
+				fmt.Println(retError.Error())
+			}
+		}()
 		name := c.String("name")
 		if name == "" {
 			return errors.New("please specify a VM name")
 		}
-		ret := hedge.Stop_vm(name)
-		if ret == 0 {
-			return nil
+		err := hedge.StopVM(name)
+		if err != nil {
+			return err
 		}
-		return retErr
+		fmt.Println("VM stopped")
+		return nil
 	},
 }
 
@@ -156,8 +165,17 @@ var showCommand = cli.Command{
 	Name:        "show",
 	Usage:       "show all running VMs",
 	Description: "show all running VMs",
-	Action: func(c *cli.Context) error {
-		hedge.Show_vms()
+	Action: func(c *cli.Context) (retError error) {
+		defer func() {
+			if retError != nil {
+				fmt.Println(retError.Error())
+			}
+		}()
+		vms, err := hedge.ShowVMs()
+		if err != nil {
+			return err
+		}
+		fmt.Println(vms)
 		return nil
 	},
 }
@@ -176,10 +194,18 @@ var consoleCommand = cli.Command{
 			Hidden:   false,
 		},
 	},
-	Action: func(c *cli.Context) error {
+	Action: func(c *cli.Context) (retError error) {
+		defer func() {
+			if retError != nil {
+				fmt.Println(retError.Error())
+			}
+		}()
 		vm := c.Int("vm")
-
-		hedge.Show_cons(vm)
+		console, err := hedge.ShowConsole(vm)
+		if err != nil {
+			return err
+		}
+		fmt.Println(console)
 		return nil
 	},
 }
