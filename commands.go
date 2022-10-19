@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"strconv"
 
 	hedge "github.com/nubificus/hedge_cli/hedge_api"
 
@@ -10,12 +11,12 @@ import (
 
 var startCommand = cli.Command{
 	Name:        "start",
-	Usage:       "start a VM",
-	Description: "start a VM",
+	Usage:       "Start a VM",
+	Description: "Start a VM",
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:        "kernel",
-			Usage:       "path to kernel file",
+			Usage:       "Path to kernel file",
 			EnvVar:      "",
 			FilePath:    "",
 			Required:    true,
@@ -26,7 +27,7 @@ var startCommand = cli.Command{
 		},
 		cli.StringFlag{
 			Name:        "name",
-			Usage:       "unique name of the VM",
+			Usage:       "Unique name of the VM",
 			EnvVar:      "",
 			FilePath:    "",
 			Required:    true,
@@ -37,30 +38,30 @@ var startCommand = cli.Command{
 		},
 		cli.IntFlag{
 			Name:        "core",
-			Usage:       "CPU core, where the VM will run",
+			Usage:       "CPU core, where the VM will run (default: 0)",
 			EnvVar:      "",
 			FilePath:    "",
-			Required:    true,
+			Required:    false,
 			Hidden:      false,
 			Value:       0,
 			Destination: new(int),
 		},
 		cli.IntFlag{
 			Name:        "mem",
-			Usage:       "VM memory in MBs",
+			Usage:       "VM memory in MBs (default: 512)",
 			EnvVar:      "",
 			FilePath:    "",
-			Required:    true,
+			Required:    false,
 			Hidden:      false,
-			Value:       0,
+			Value:       512,
 			Destination: new(int),
 		},
 		cli.StringFlag{
 			Name:        "blk",
-			Usage:       "path to block device",
+			Usage:       "Path to block device",
 			EnvVar:      "",
 			FilePath:    "",
-			Required:    true,
+			Required:    false,
 			Hidden:      false,
 			TakesFile:   false,
 			Value:       "",
@@ -68,10 +69,10 @@ var startCommand = cli.Command{
 		},
 		cli.StringFlag{
 			Name:        "net",
-			Usage:       "network interface",
+			Usage:       "Network interface",
 			EnvVar:      "",
 			FilePath:    "",
-			Required:    true,
+			Required:    false,
 			Hidden:      false,
 			TakesFile:   false,
 			Value:       "",
@@ -79,7 +80,7 @@ var startCommand = cli.Command{
 		},
 		cli.StringFlag{
 			Name:        "cmdline",
-			Usage:       "command line argument for the guest kernel",
+			Usage:       "Command line argument for the guest kernel",
 			EnvVar:      "",
 			FilePath:    "",
 			Required:    true,
@@ -97,19 +98,23 @@ var startCommand = cli.Command{
 		blk := c.String("blk")
 		net := c.String("net")
 		cmdline := c.String("cmdline")
-		stringFlags := []string{kernel, name, blk, net, cmdline}
+
+		stringFlags := []string{kernel, name, cmdline}
 
 		for _, stringFlag := range stringFlags {
 			if stringFlag == "" {
-				return errors.New("please specify a VM name")
+				return errors.New("Please specify the kernel path, the name of the VM and the cmdline")
 			}
 		}
 		mem := c.Int("mem")
-		if mem == 0 {
-			return errors.New("memory must be greater than 0Mbs")
+		if mem <= 0 {
+			return errors.New("Memory must be greater than 0 MBs")
 		}
 
 		core := c.Int("core")
+		if core < 0 {
+			return errors.New("Core cannot be a negative value")
+		}
 
 		ret := hedge.Start_vm(kernel, name, core, mem,
 			blk, net, cmdline)
@@ -122,27 +127,14 @@ var startCommand = cli.Command{
 
 var stopCommand = cli.Command{
 	Name:        "stop",
-	Usage:       "stop a VM",
-	Description: "stop a VM",
-	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:        "name",
-			Usage:       "name of the VM to sto",
-			EnvVar:      "",
-			FilePath:    "",
-			Required:    true,
-			Hidden:      false,
-			TakesFile:   false,
-			Value:       "",
-			Destination: new(string),
-		},
-	},
+	Usage:       "Stop a VM, with the given name",
+	Description: "Stop a VM, with the given name",
 	Action: func(c *cli.Context) error {
 		var retErr error
 
-		name := c.String("name")
+		name := c.Args().First()
 		if name == "" {
-			return errors.New("please specify a VM name")
+			return errors.New("Please specify a VM name")
 		}
 		ret := hedge.Stop_vm(name)
 		if ret == 0 {
@@ -154,8 +146,8 @@ var stopCommand = cli.Command{
 
 var showCommand = cli.Command{
 	Name:        "show",
-	Usage:       "show all running VMs",
-	Description: "show all running VMs",
+	Usage:       "Show all running VMs",
+	Description: "Show all running VMs",
 	Action: func(c *cli.Context) error {
 		hedge.Show_vms()
 		return nil
@@ -164,21 +156,15 @@ var showCommand = cli.Command{
 
 var consoleCommand = cli.Command{
 	Name:        "console",
-	Usage:       "show the console of VM with given ID",
-	Description: "show the console of VM with given ID",
-	Flags: []cli.Flag{
-		cli.IntFlag{
-			Name:     "vm",
-			Usage:    "ID of the VM to show console",
-			EnvVar:   "",
-			FilePath: "",
-			Required: true,
-			Hidden:   false,
-		},
-	},
+	Usage:       "Show the console of VM with given ID",
+	Description: "Show the console of VM with given ID",
 	Action: func(c *cli.Context) error {
 		vm := c.Int("vm")
 
+		vm, err := strconv.Atoi(c.Args().First())
+		if err != nil || vm < 0 {
+			return errors.New("Please specify a valid VM id")
+		}
 		hedge.Show_cons(vm)
 		return nil
 	},
