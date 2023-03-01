@@ -31,13 +31,13 @@ func Start_vm(bin_path string, vm_name string, cpu int, mem int,
 		ret = -1
 	}
 	if ret == 0 {
-		cmd := fmt.Sprintf("load|%s", bin_path)
+		cmd := fmt.Sprintf("load|%s\n", bin_path)
 		err := os.WriteFile(mon_endpoint, []byte(cmd), 0777)
 		if err != nil {
 			fmt.Println(err)
 			ret = 1
 		}
-		cmd = fmt.Sprintf("start|%s|%s|%d|%d|%s|%s|%s", vm_name,
+		cmd = fmt.Sprintf("start|%s|%s|%d|%d|%s|%s|%s\n", vm_name,
 			bin_path, cpu, mem, blk, net, cmdline)
 		err = os.WriteFile(mon_endpoint, []byte(cmd), 0777)
 		if err != nil {
@@ -56,7 +56,7 @@ func Stop_vm(vm_name string) int {
 		return 1
 	}
 
-	cmd := fmt.Sprintf("stop|%s", vm_name)
+	cmd := fmt.Sprintf("stop|%s\n", vm_name)
 	err := os.WriteFile(mon_endpoint, []byte(cmd), 0777)
 	if err != nil {
 		fmt.Println(err)
