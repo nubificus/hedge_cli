@@ -1,181 +1,118 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"strconv"
 
 	hedge "github.com/nubificus/hedge_cli/hedge_api"
-
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-var startCommand = cli.Command{
+var commands []*cli.Command = []*cli.Command{{
 	Name:        "start",
 	Usage:       "Start a VM",
 	Description: "Start a VM",
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:        "kernel",
-			Usage:       "Path to kernel file",
-			EnvVar:      "",
-			FilePath:    "",
-			Required:    true,
-			Hidden:      false,
-			TakesFile:   false,
-			Value:       "",
-			Destination: new(string),
+		&cli.StringFlag{
+			Name:     "kernel",
+			Aliases:  []string{"k"},
+			Usage:    "Path to kernel file",
+			Required: true,
 		},
-		cli.StringFlag{
-			Name:        "name",
-			Usage:       "Unique name of the VM",
-			EnvVar:      "",
-			FilePath:    "",
-			Required:    true,
-			Hidden:      false,
-			TakesFile:   false,
-			Value:       "",
-			Destination: new(string),
+		&cli.StringFlag{
+			Name:     "name",
+			Usage:    "Unique name of the VM",
+			Aliases:  []string{"n"},
+			Required: true,
 		},
-		cli.IntFlag{
-			Name:        "core",
-			Usage:       "CPU core, where the VM will run (default: 0)",
-			EnvVar:      "",
-			FilePath:    "",
-			Required:    false,
-			Hidden:      false,
-			Value:       0,
-			Destination: new(int),
+		&cli.IntFlag{
+			Name:     "core",
+			Aliases:  []string{"c"},
+			Usage:    "CPU core, where the VM will run (default: 0)",
+			Required: false,
+			Value:    0,
 		},
-		cli.IntFlag{
-			Name:        "mem",
-			Usage:       "VM memory in MBs (default: 512)",
-			EnvVar:      "",
-			FilePath:    "",
-			Required:    false,
-			Hidden:      false,
-			Value:       512,
-			Destination: new(int),
+		&cli.IntFlag{
+			Name:     "memory",
+			Aliases:  []string{"mem", "m"},
+			Usage:    "VM memory in MBs (default: 512)",
+			Required: false,
+			Value:    512,
 		},
-		cli.StringFlag{
-			Name:        "blk",
-			Usage:       "Path to block device",
-			EnvVar:      "",
-			FilePath:    "",
-			Required:    false,
-			Hidden:      false,
-			TakesFile:   false,
-			Value:       "",
-			Destination: new(string),
+		&cli.StringFlag{
+			Name:     "block",
+			Aliases:  []string{"blk", "b"},
+			Usage:    "Path to block device",
+			Required: false,
+			Value:    "",
 		},
-		cli.StringFlag{
-			Name:        "net",
-			Usage:       "Network interface",
-			EnvVar:      "",
-			FilePath:    "",
-			Required:    false,
-			Hidden:      false,
-			TakesFile:   false,
-			Value:       "",
-			Destination: new(string),
+		&cli.StringFlag{
+			Name:     "net",
+			Aliases:  []string{"t"},
+			Usage:    "Network interface",
+			Required: false,
+			Value:    "",
 		},
-		cli.StringFlag{
-			Name:        "cmdline",
-			Usage:       "Command line argument for the guest kernel",
-			EnvVar:      "",
-			FilePath:    "",
-			Required:    true,
-			Hidden:      false,
-			TakesFile:   false,
-			Value:       "",
-			Destination: new(string),
+		&cli.StringFlag{
+			Name:     "cmdline",
+			Aliases:  []string{"cmd"},
+			Usage:    "Command line argument for the guest kernel",
+			Required: true,
 		},
 	},
-	Action: func(c *cli.Context) error {
-		var retErr error
-
-		kernel := c.String("kernel")
-		name := c.String("name")
-		blk := c.String("blk")
-		net := c.String("net")
-		cmdline := c.String("cmdline")
-
-		stringFlags := []string{kernel, name, cmdline}
-
-		for _, stringFlag := range stringFlags {
-			if stringFlag == "" {
-				return errors.New("Please specify the kernel path, the name of the VM and the cmdline")
+	Action: func(ctx *cli.Context) error {
+		newVm := hedge.VMConfig{
+			Name:    ctx.String("name"),
+			Binary:  ctx.String("kernel"),
+			CPU:     ctx.Int("core"),
+			Mem:     ctx.Int("memory"),
+			Blk:     ctx.String("block"),
+			Net:     ctx.String("interface"),
+			CmdLine: ctx.String("cmdline"),
+		}
+		return hedge.StartVM(newVm)
+	}},
+	{
+		Name:        "stop",
+		Usage:       "Stop a VM with the given name",
+		Description: "Stop a VM with the given name",
+		Action: func(ctx *cli.Context) error {
+			name := ctx.Args().First()
+			if name == "" {
+				return fmt.Errorf("vm name cannot be empty")
 			}
-		}
-		mem := c.Int("mem")
-		if mem <= 0 {
-			return errors.New("Memory must be greater than 0 MBs")
-		}
-
-		core := c.Int("core")
-		if core < 0 {
-			return errors.New("Core cannot be a negative value")
-		}
-
-		ret := hedge.Start_vm(kernel, name, core, mem,
-			blk, net, cmdline)
-		if ret == 0 {
+			return hedge.StopVM(name)
+		},
+	},
+	{
+		Name:        "show",
+		Aliases:     []string{"list", "ls"},
+		Usage:       "Show all running VMs",
+		Description: "Show all running VMs",
+		Action: func(ctx *cli.Context) error {
+			vms, err := hedge.ListVMs()
+			if err != nil {
+				return err
+			}
+			prettyPrint(vms)
 			return nil
-		}
-		return retErr
+		},
 	},
-}
-
-var stopCommand = cli.Command{
-	Name:        "stop",
-	Usage:       "Stop a VM, with the given name",
-	Description: "Stop a VM, with the given name",
-	Action: func(c *cli.Context) error {
-		var retErr error
-
-		name := c.Args().First()
-		if name == "" {
-			return errors.New("Please specify a VM name")
-		}
-		ret := hedge.Stop_vm(name)
-		if ret == 0 {
+	{
+		Name:        "console",
+		Usage:       "Show the console of VM with given ID",
+		Description: "Show the console of VM with given ID",
+		Action: func(ctx *cli.Context) error {
+			vm, err := strconv.Atoi(ctx.Args().First())
+			if err != nil || vm < 0 {
+				return fmt.Errorf("please specify a valid VM id")
+			}
+			output, err := hedge.Console(vm)
+			if err != nil {
+				return err
+			}
+			fmt.Println(output)
 			return nil
-		}
-		return retErr
+		},
 	},
-}
-
-var showCommand = cli.Command{
-	Name:        "show",
-	Usage:       "Show all running VMs",
-	Description: "Show all running VMs",
-	Action: func(c *cli.Context) error {
-		hedge.Show_vms()
-		return nil
-	},
-}
-
-var consoleCommand = cli.Command{
-	Name:        "console",
-	Usage:       "Show the console of VM with given ID",
-	Description: "Show the console of VM with given ID",
-	Action: func(c *cli.Context) error {
-		vm := c.Int("vm")
-
-		vm, err := strconv.Atoi(c.Args().First())
-		if err != nil || vm < 0 {
-			return errors.New("Please specify a valid VM id")
-		}
-		hedge.Show_cons(vm)
-		return nil
-	},
-}
-
-func Commands() []cli.Command {
-	commands := []cli.Command{
-		startCommand,
-		stopCommand,
-		showCommand,
-		consoleCommand,
-	}
-	return commands
 }
