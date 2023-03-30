@@ -57,6 +57,17 @@ func loadBinary(binary string) error {
 	return nil
 }
 
+func Status() error {
+	f, err := os.Stat(MONITOR_ENDPOINT)
+	if err != nil {
+		return err
+	}
+	if f.IsDir() {
+		return fmt.Errorf("%s is a directory", MONITOR_ENDPOINT)
+	}
+	return nil
+}
+
 func StartVM(conf VMConfig) error {
 	err := conf.Validate()
 	if err != nil {
