@@ -85,6 +85,20 @@ var commands []*cli.Command = []*cli.Command{{
 		},
 	},
 	{
+		Name:        "status",
+		Usage:       "Check if hedge is loaded",
+		Description: "Check if hedge is loaded",
+		Action: func(ctx *cli.Context) error {
+			err := hedge.Status()
+			if err == nil {
+				fmt.Println("Status: OK")
+				return nil
+			}
+			fmt.Println("Status: ERROR")
+			return err
+		},
+	},
+	{
 		Name:        "show",
 		Aliases:     []string{"list", "ls"},
 		Usage:       "Show all running VMs",
