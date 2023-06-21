@@ -22,12 +22,12 @@ var commands []*cli.Command = []*cli.Command{{
 		&cli.StringFlag{
 			Name:     "name",
 			Usage:    "Unique name of the VM",
-			Aliases:  []string{"n"},
+			Aliases:  []string{"t"},
 			Required: true,
 		},
 		&cli.IntFlag{
 			Name:     "core",
-			Aliases:  []string{"c"},
+			Aliases:  []string{"p"},
 			Usage:    "CPU core, where the VM will run (default: 0)",
 			Required: false,
 			Value:    0,
@@ -48,14 +48,14 @@ var commands []*cli.Command = []*cli.Command{{
 		},
 		&cli.StringFlag{
 			Name:     "net",
-			Aliases:  []string{"t"},
+			Aliases:  []string{"n"},
 			Usage:    "Network interface",
 			Required: false,
 			Value:    "",
 		},
 		&cli.StringFlag{
 			Name:     "cmdline",
-			Aliases:  []string{"cmd"},
+			Aliases:  []string{"c"},
 			Usage:    "Command line argument for the guest kernel",
 			Required: true,
 		},
