@@ -67,7 +67,7 @@ var commands []*cli.Command = []*cli.Command{{
 			CPU:     ctx.Int("core"),
 			Mem:     ctx.Int("memory"),
 			Blk:     ctx.String("block"),
-			Net:     ctx.String("interface"),
+			Net:     ctx.String("net"),
 			CmdLine: ctx.String("cmdline"),
 		}
 		return hedge.StartVM(newVm)
