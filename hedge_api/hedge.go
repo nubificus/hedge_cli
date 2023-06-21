@@ -117,21 +117,20 @@ func ListVMs() ([]VM, error) {
 	var vms []VM
 	for _, value := range lines {
 		parts := strings.Fields(value)
-		id := parts[0]
-		id = id[:len(id)-1]
+		id := strings.TrimSpace(parts[0])
 		idInt, err := strconv.Atoi(id)
 		if err != nil {
 			return []VM{}, err
 		}
-		modIdInt, err := strconv.Atoi(parts[2])
+		modIdInt, err := strconv.Atoi(strings.TrimSpace(parts[2]))
 		if err != nil {
 			return []VM{}, err
 		}
 		temp := VM{
 			ID:      idInt,
-			Name:    parts[1],
+			Name:    strings.TrimSpace(parts[1]),
 			ModID:   modIdInt,
-			ModName: parts[3],
+			ModName: strings.TrimSpace(parts[3]),
 		}
 		vms = append(vms, temp)
 	}
@@ -139,12 +138,8 @@ func ListVMs() ([]VM, error) {
 }
 
 func Console(id int) (string, error) {
-	vmId := fmt.Sprintf("%d\n", id)
-	err := os.WriteFile(CONSOLE_ENDPOINT, []byte(vmId), 0777)
-	if err != nil {
-		return "", err
-	}
-	content, err := os.ReadFile(CONSOLE_ENDPOINT)
+	consoleEndpoint := fmt.Sprintf("%s/vm%d", CONSOLE_ENDPOINT, id)
+	content, err := os.ReadFile(consoleEndpoint)
 	if err != nil {
 		return "", err
 	}
